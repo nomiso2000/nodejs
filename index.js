@@ -15,7 +15,6 @@ const argv = yargs
   .alias('action', 'a')
   .alias('email', 'e')
   .alias('phone', 'p').argv;
-console.log(argv);
 function invokeAction({ action, id, name, email, phone }) {
   console.log(action);
   switch (action) {
