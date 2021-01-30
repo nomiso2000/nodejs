@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node src/index.js",
-    "dev": "nodemon .src/start.js"
+    "dev": "nodemon src/start.js"
   },
   "repository": {
     "type": "git",
@@ -26,7 +26,8 @@
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
     "joi": "^17.3.0",
-    "morgan": "^1.10.0",
-    "yargs": "^16.2.0"
+    "mongodb": "^3.6.3",
+    "mongoose": "^5.11.13",
+    "morgan": "^1.10.0"
   }
 }
