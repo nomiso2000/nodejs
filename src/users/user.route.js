@@ -12,6 +12,13 @@ userRouter.put('/login', userController.validateLogin, userController.login);
 
 userRouter.patch('/logout', userController.authorize, userController.logOut);
 
+userRouter.patch(
+  '/avatars',
+  userController.authorize,
+  userController.multerHandler(),
+  userController.updateUser
+);
+
 userRouter.get(
   '/current',
   userController.authorize,

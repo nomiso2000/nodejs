@@ -6,6 +6,12 @@ const {
 const bcryptjs = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { UnauthorizedError } = require('../helpers/errors.constructors');
+const multer = require('multer');
+
+////////////////////////////////////////////
+const { createAvatar } = require('../helpers/avatar-builder');
+const path = require('path');
+const fsPromises = require('fs').promises;
 
 class UserController {
   constructor() {
@@ -30,10 +36,21 @@ class UserController {
       if (existingUser) {
         return res.status(409).send('User exist');
       }
+      /////////////////////////////////
+      const userAvatar = await createAvatar(email);
+      const avatarFileName = `${email}_avatar.png`;
+      const avatarPath = path.join(
+        __dirname,
+        `../public/static/${avatarFileName}`
+      );
+      await fsPromises.writeFile(avatarPath, userAvatar);
+      const avatarURL = `http://localhost:3000/images/${avatarFileName}`;
+      ////////////////////////
 
       const user = await userModel.create({
         email,
         password: passwordHash,
+        avatarURL: avatarURL,
       });
       console.log('USER', user);
       return res.status(201).json({ id: user._id, email: user.email });
@@ -81,6 +98,24 @@ class UserController {
     } catch (err) {
       next(err);
     }
+  }
+
+  multerHandler() {
+    const storage = multer.diskStorage({
+      destination: 'src/public/static',
+      filename: function (req, file, cb) {
+        const ext = path.parse(file.originalname).ext;
+        cb(null, Date.now().toString() + ext);
+      },
+    });
+    const upload = multer({ storage });
+
+    return upload.single('file_example');
+  }
+  async updateUser(req, res, next) {
+    const avatarFileName = req.file.filename;
+    req.user.avatarURL = `http://localhost:3000/images/${avatarFileName}`;
+    return res.status(200).send({ avatarURL: req.user.avatarURL });
   }
 
   prepareUserToResponse(users) {
