@@ -30,7 +30,8 @@ module.exports = class ContactServer {
 
   initMiddlewates() {
     this.server.use(express.json());
-    this.server.use(express.static('src//public'));
+    // this.server.use(express.static('src//public'));
+    this.server.use('/images', express.static(__dirname + 'src/public'));
   }
   initRoutes() {
     this.server.use('/contacts', contactRouter);

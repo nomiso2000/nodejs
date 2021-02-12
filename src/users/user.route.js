@@ -10,6 +10,8 @@ userRouter.post(
 
 userRouter.put('/login', userController.validateLogin, userController.login);
 
+userRouter.get('/verify/:token', userController.verifyEmail);
+
 userRouter.patch('/logout', userController.authorize, userController.logOut);
 
 userRouter.patch(
