@@ -3,15 +3,20 @@ const userModel = require('./user.model');
 const {
   Types: { ObjectId },
 } = require('mongoose');
+const ms = require('ms');
+const sgMail = require('@sendgrid/mail');
 const bcryptjs = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const uuid = require('uuid');
 const { UnauthorizedError } = require('../helpers/errors.constructors');
 const multer = require('multer');
+require('dotenv').config();
 
 ////////////////////////////////////////////
 const { createAvatar } = require('../helpers/avatar-builder');
 const path = require('path');
 const fsPromises = require('fs').promises;
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 class UserController {
   constructor() {
@@ -52,26 +57,52 @@ class UserController {
         password: passwordHash,
         avatarURL: avatarURL,
       });
-      console.log('USER', user);
+      await this.sendVerificationEmail(user);
       return res.status(201).json({ id: user._id, email: user.email });
     } catch (err) {
       next(err);
     }
   }
 
+  async verifyEmail(req, res, next) {
+    try {
+      const { token } = req.params;
+      const userToVerify = await userModel.findByVerificationToken(token);
+
+      if (!userToVerify) {
+        throw new NotFoundError('User not found');
+      }
+      await userModel.verifyUser(userToVerify._id);
+      return res.status(200).send('You`re user succes');
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async sendEmail(emailToSend, verificationToken) {
+    const msg = {
+      to: `${emailToSend}`, // Change to your recipient
+      from: 'nomiso432@gmail.com', // Change to your verified sender
+      subject: 'Email verification',
+      text: 'Respect message',
+      html: `<a href='http://localhost:3000/auth/verify/${verificationToken}'>CLick here to respect</a>`,
+    };
+    await sgMail.send(msg);
+  }
+
   async login(req, res, next) {
     try {
       const { email, password } = req.body;
       const user = await userModel.findByEmail(email);
-      if (!user) {
-        return res.status(401).send('Email or password is wrong');
+      if (!user || user.status !== 'Verified') {
+        return res.status(401).send('Authentification failed');
       }
       const isPasswordValid = await bcryptjs.compare(password, user.password);
       if (!isPasswordValid) {
         return res.status(401).send('Email or password is wrong');
       }
       const token = await jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-        expiresIn: 2 * 24 * 60 * 60, //two days
+        expiresIn: ms('2 days'),
       });
       await userModel.updateToken(user._id, token);
       return res.status(200).json({ token, email });
@@ -123,6 +154,11 @@ class UserController {
       const { _id, username, email } = user;
       return { id: _id, username, email };
     });
+  }
+  async sendVerificationEmail(user) {
+    const verificationToken = uuid.v4();
+    await userModel.createVerificationToken(user._id, verificationToken);
+    await this.sendEmail(user.email, verificationToken);
   }
 
   //////////////////////////////////HELPERS/////////////////
